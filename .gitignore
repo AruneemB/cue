@@ -1,0 +1,8 @@
+# Local development files
+.history/
+.specstory/
+.cursorindexingignore
+
+# Project documentation (ignored for implementation)
+CUE-SPEC.md
+CUE-INSIGHTS.md
