@@ -1,4 +1,5 @@
 # Local development files
+.claude/
 .history/
 .specstory/
 .cursorindexingignore
@@ -35,6 +36,7 @@ yarn-debug.log*
 yarn-error.log*
 
 # local env files
+.env
 .env*.local
 
 # vercel
