@@ -9,6 +9,7 @@ import {
   Code2,
   Settings,
 } from "lucide-react";
+import SessionProvider from "@/components/providers/SessionProvider";
 import "./globals.css";
 
 const geistSans = localFont({
@@ -46,26 +47,28 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <div className="flex min-h-screen">
-          <aside className="w-64 border-r border-foreground/10 p-4 flex flex-col gap-2">
-            <Link href="/" className="text-xl font-bold mb-6 px-2">
-              Cue
-            </Link>
-            <nav className="flex flex-col gap-1">
-              {navItems.map(({ href, label, icon: Icon }) => (
-                <Link
-                  key={href}
-                  href={href}
-                  className="flex items-center gap-3 rounded-md px-2 py-2 text-sm hover:bg-foreground/5 transition-colors"
-                >
-                  <Icon size={18} />
-                  {label}
-                </Link>
-              ))}
-            </nav>
-          </aside>
-          <main className="flex-1 p-6">{children}</main>
-        </div>
+        <SessionProvider>
+          <div className="flex min-h-screen">
+            <aside className="w-64 border-r border-foreground/10 p-4 flex flex-col gap-2">
+              <Link href="/" className="text-xl font-bold mb-6 px-2">
+                Cue
+              </Link>
+              <nav className="flex flex-col gap-1">
+                {navItems.map(({ href, label, icon: Icon }) => (
+                  <Link
+                    key={href}
+                    href={href}
+                    className="flex items-center gap-3 rounded-md px-2 py-2 text-sm hover:bg-foreground/5 transition-colors"
+                  >
+                    <Icon size={18} />
+                    {label}
+                  </Link>
+                ))}
+              </nav>
+            </aside>
+            <main className="flex-1 p-6">{children}</main>
+          </div>
+        </SessionProvider>
       </body>
     </html>
   );
