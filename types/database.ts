@@ -76,6 +76,7 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
       habit_logs: {
         Row: {
@@ -102,6 +103,15 @@ export interface Database {
           logged_at?: string;
           metadata?: Record<string, unknown> | null;
         };
+        Relationships: [
+          {
+            foreignKeyName: "habit_logs_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       notifications: {
         Row: {
@@ -134,6 +144,15 @@ export interface Database {
           clicked_at?: string | null;
           snoozed_until?: string | null;
         };
+        Relationships: [
+          {
+            foreignKeyName: "notifications_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       kaggle_ideas: {
         Row: {
@@ -169,6 +188,15 @@ export interface Database {
           saved?: boolean;
           created_at?: string;
         };
+        Relationships: [
+          {
+            foreignKeyName: "kaggle_ideas_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
       };
     };
     Views: Record<string, never>;
