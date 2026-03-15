@@ -1,13 +1,53 @@
-import Anthropic from "@anthropic-ai/sdk";
 import type { QuantIdea, MicroTask } from "@/types/ai";
 
-let _client: Anthropic | null = null;
+const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
+const DEFAULT_MODEL = "google/gemini-2.5-pro-preview";
 
-function getClient(): Anthropic {
-  if (!_client) {
-    _client = new Anthropic();
+interface ChatCompletionResponse {
+  choices: {
+    message: {
+      content: string;
+    };
+  }[];
+}
+
+function getEnvVar(name: string): string {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(`Missing env variable ${name}`);
   }
-  return _client;
+  return value;
+}
+
+async function chatCompletion(
+  system: string,
+  userMessage: string
+): Promise<string> {
+  const apiKey = getEnvVar("OPENROUTER_API_KEY");
+  const model = process.env.OPENROUTER_MODEL ?? DEFAULT_MODEL;
+
+  const res = await fetch(OPENROUTER_URL, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model,
+      max_tokens: 1024,
+      messages: [
+        { role: "system", content: system },
+        { role: "user", content: userMessage },
+      ],
+    }),
+  });
+
+  if (!res.ok) {
+    throw new Error(`OpenRouter API error: ${res.status} ${res.statusText}`);
+  }
+
+  const data: ChatCompletionResponse = await res.json();
+  return data.choices[0].message.content;
 }
 
 const RESEARCH_THEMES = [
@@ -55,24 +95,14 @@ export async function generateQuantIdea(
   const selectedTheme = theme ?? sampleTheme();
 
   try {
-    const response = await getClient().messages.create({
-      model: "claude-sonnet-4-5-20250929",
-      max_tokens: 1024,
-      system:
-        "You are a quantitative finance researcher. Return only valid JSON.",
-      messages: [
-        {
-          role: "user",
-          content: `Generate a rigorous, professional-grade quant research project.
+    const text = await chatCompletion(
+      "You are a quantitative finance researcher. Return only valid JSON.",
+      `Generate a rigorous, professional-grade quant research project.
 Theme: ${selectedTheme}
 Return: { "title": string, "hypothesis": string, "dataset": string, "methodology": string, "eval_metric": string, "difficulty": "beginner" | "intermediate" | "advanced" }
-Avoid toy examples. Target graduate or professional scope.`,
-        },
-      ],
-    });
+Avoid toy examples. Target graduate or professional scope.`
+    );
 
-    const text =
-      response.content[0].type === "text" ? response.content[0].text : "";
     const idea: QuantIdea = JSON.parse(text);
     return idea;
   } catch (err) {
@@ -90,22 +120,12 @@ export async function generateMicroTask(
   roadmapName: string
 ): Promise<MicroTask | null> {
   try {
-    const response = await getClient().messages.create({
-      model: "claude-sonnet-4-5-20250929",
-      max_tokens: 1024,
-      system:
-        "You are a software engineering mentor. Return only valid JSON.",
-      messages: [
-        {
-          role: "user",
-          content: `Given skill node "${nodeName}" on the ${roadmapName} roadmap, provide a focused 20-minute hands-on micro-task to meaningfully advance this skill.
-Return: { "task_description": string, "resource_link": string, "hands_on_exercise": string }`,
-        },
-      ],
-    });
+    const text = await chatCompletion(
+      "You are a software engineering mentor. Return only valid JSON.",
+      `Given skill node "${nodeName}" on the ${roadmapName} roadmap, provide a focused 20-minute hands-on micro-task to meaningfully advance this skill.
+Return: { "task_description": string, "resource_link": string, "hands_on_exercise": string }`
+    );
 
-    const text =
-      response.content[0].type === "text" ? response.content[0].text : "";
     const task: MicroTask = JSON.parse(text);
     return task;
   } catch (err) {
