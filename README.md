@@ -5,6 +5,6 @@
 ### Key Features
 - **Hourly Nudges:** Personalized notifications to keep you building.
 - **Unified Dashboard:** Track XP, streaks, and activity heatmaps.
-- **Quant Research:** Generate advanced quant ideas via Claude on demand.
+- **Quant Research:** Generate advanced quant ideas via AI (OpenRouter) on demand.
 - **Skill Advancement:** Guided micro-tasks for your Roadmap.sh skills.
 - **Daily Challenges:** Integrated LeetCode daily problem tracking.
