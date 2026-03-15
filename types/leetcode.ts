@@ -15,7 +15,7 @@ export interface DailyChallenge {
   question: LeetCodeQuestion;
 }
 
-export interface DailyChalllengeResponse {
+export interface DailyChallengeResponse {
   data: {
     activeDailyCodingChallengeQuestion: DailyChallenge;
   };

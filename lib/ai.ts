@@ -1,4 +1,20 @@
 import type { QuantIdea, MicroTask } from "@/types/ai";
+import { z } from "zod";
+
+const QuantIdeaSchema = z.object({
+  title: z.string(),
+  hypothesis: z.string(),
+  dataset: z.string(),
+  methodology: z.string(),
+  eval_metric: z.string(),
+  difficulty: z.enum(["beginner", "intermediate", "advanced"]),
+});
+
+const MicroTaskSchema = z.object({
+  task_description: z.string(),
+  resource_link: z.string(),
+  hands_on_exercise: z.string(),
+});
 
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 const DEFAULT_MODEL = "google/gemini-2.5-pro-preview";
@@ -103,7 +119,7 @@ Return: { "title": string, "hypothesis": string, "dataset": string, "methodology
 Avoid toy examples. Target graduate or professional scope.`
     );
 
-    const idea: QuantIdea = JSON.parse(text);
+    const idea = QuantIdeaSchema.parse(JSON.parse(text));
     return idea;
   } catch (err) {
     console.error("Failed to generate quant idea:", err);
@@ -126,7 +142,7 @@ export async function generateMicroTask(
 Return: { "task_description": string, "resource_link": string, "hands_on_exercise": string }`
     );
 
-    const task: MicroTask = JSON.parse(text);
+    const task = MicroTaskSchema.parse(JSON.parse(text));
     return task;
   } catch (err) {
     console.error("Failed to generate micro-task:", err);

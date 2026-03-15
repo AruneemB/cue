@@ -86,6 +86,9 @@ export interface Database {
           xp_earned: number;
           logged_at: string;
           metadata: Record<string, unknown> | null;
+          source_id: string | null;
+          duration_mins: number | null;
+          notes: string | null;
         };
         Insert: {
           id?: string;
@@ -94,6 +97,9 @@ export interface Database {
           xp_earned?: number;
           logged_at?: string;
           metadata?: Record<string, unknown> | null;
+          source_id?: string | null;
+          duration_mins?: number | null;
+          notes?: string | null;
         };
         Update: {
           id?: string;
@@ -102,6 +108,9 @@ export interface Database {
           xp_earned?: number;
           logged_at?: string;
           metadata?: Record<string, unknown> | null;
+          source_id?: string | null;
+          duration_mins?: number | null;
+          notes?: string | null;
         };
         Relationships: [
           {
@@ -120,6 +129,7 @@ export interface Database {
           channel: string;
           title: string;
           body: string;
+          action_url: string | null;
           delivered_at: string;
           clicked_at: string | null;
           snoozed_until: string | null;
@@ -130,6 +140,7 @@ export interface Database {
           channel: string;
           title: string;
           body: string;
+          action_url?: string | null;
           delivered_at?: string;
           clicked_at?: string | null;
           snoozed_until?: string | null;
@@ -140,6 +151,7 @@ export interface Database {
           channel?: string;
           title?: string;
           body?: string;
+          action_url?: string | null;
           delivered_at?: string;
           clicked_at?: string | null;
           snoozed_until?: string | null;
@@ -161,6 +173,10 @@ export interface Database {
           title: string;
           description: string | null;
           url: string | null;
+          hypothesis: string | null;
+          dataset: string | null;
+          methodology: string | null;
+          eval_metric: string | null;
           difficulty: string | null;
           tags: string[] | null;
           saved: boolean;
@@ -172,6 +188,10 @@ export interface Database {
           title: string;
           description?: string | null;
           url?: string | null;
+          hypothesis?: string | null;
+          dataset?: string | null;
+          methodology?: string | null;
+          eval_metric?: string | null;
           difficulty?: string | null;
           tags?: string[] | null;
           saved?: boolean;
@@ -183,6 +203,10 @@ export interface Database {
           title?: string;
           description?: string | null;
           url?: string | null;
+          hypothesis?: string | null;
+          dataset?: string | null;
+          methodology?: string | null;
+          eval_metric?: string | null;
           difficulty?: string | null;
           tags?: string[] | null;
           saved?: boolean;

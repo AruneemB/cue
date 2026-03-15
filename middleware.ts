@@ -6,7 +6,9 @@ export default auth((req) => {
   const { pathname } = req.nextUrl;
 
   const isPublic =
-    publicRoutes.includes(pathname) || pathname.startsWith("/api/auth");
+    publicRoutes.includes(pathname) ||
+    pathname.startsWith("/api/auth") ||
+    pathname.startsWith("/api/notify");
 
   if (!isPublic && !req.auth) {
     const loginUrl = new URL("/login", req.url);

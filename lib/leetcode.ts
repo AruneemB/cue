@@ -1,4 +1,4 @@
-import type { DailyChallenge, DailyChalllengeResponse } from "@/types/leetcode";
+import type { DailyChallenge, DailyChallengeResponse } from "@/types/leetcode";
 
 const LEETCODE_GRAPHQL = "https://leetcode.com/graphql";
 
@@ -30,7 +30,7 @@ export async function fetchDailyProblem(): Promise<DailyChallenge | null> {
       return null;
     }
 
-    const json: DailyChalllengeResponse = await res.json();
+    const json: DailyChallengeResponse = await res.json();
     return json.data.activeDailyCodingChallengeQuestion ?? null;
   } catch (err) {
     console.error("Failed to fetch LeetCode daily problem:", err);
