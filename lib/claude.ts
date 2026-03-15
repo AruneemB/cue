@@ -1,5 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import type { QuantIdea } from "@/types/claude";
+import type { QuantIdea, MicroTask } from "@/types/claude";
 
 let _client: Anthropic | null = null;
 
@@ -83,4 +83,40 @@ Avoid toy examples. Target graduate or professional scope.`,
 
 export function formatQuantIdeaText(idea: QuantIdea): string {
   return `Quant idea: ${idea.title} — ${idea.hypothesis}. Tap to expand.`;
+}
+
+export async function generateMicroTask(
+  nodeName: string,
+  roadmapName: string
+): Promise<MicroTask | null> {
+  try {
+    const response = await getClient().messages.create({
+      model: "claude-sonnet-4-5-20250929",
+      max_tokens: 1024,
+      system:
+        "You are a software engineering mentor. Return only valid JSON.",
+      messages: [
+        {
+          role: "user",
+          content: `Given skill node "${nodeName}" on the ${roadmapName} roadmap, provide a focused 20-minute hands-on micro-task to meaningfully advance this skill.
+Return: { "task_description": string, "resource_link": string, "hands_on_exercise": string }`,
+        },
+      ],
+    });
+
+    const text =
+      response.content[0].type === "text" ? response.content[0].text : "";
+    const task: MicroTask = JSON.parse(text);
+    return task;
+  } catch (err) {
+    console.error("Failed to generate micro-task:", err);
+    return null;
+  }
+}
+
+export function formatMicroTaskText(
+  nodeName: string,
+  task: MicroTask
+): string {
+  return `Roadmap: Work on ${nodeName}. Today's task: ${task.task_description}`;
 }
