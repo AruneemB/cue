@@ -1,5 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import type { QuantIdea, MicroTask } from "@/types/claude";
+import type { QuantIdea, MicroTask } from "@/types/ai";
 
 let _client: Anthropic | null = null;
 
