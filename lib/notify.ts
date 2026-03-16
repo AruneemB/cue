@@ -1,4 +1,14 @@
-import type { ModuleChannel, NotifyPrefs } from "@/types/database";
+import type { ModuleChannel, NotifyPrefs, RoadmapData } from "@/types/database";
+import type { PushPayload } from "@/lib/push";
+import { getRepoToNudge } from "@/lib/github";
+import { fetchDailyProblem, formatDailyProblemText } from "@/lib/leetcode";
+import {
+  generateQuantIdea,
+  formatQuantIdeaText,
+  generateMicroTask,
+  formatMicroTaskText,
+} from "@/lib/ai";
+import { parseRoadmapData, getNextSkillNode } from "@/lib/roadmap";
 
 const ALL_CHANNELS: ModuleChannel[] = [
   "github",
@@ -73,4 +83,82 @@ export function isQuietHour(
   }
   // Wraps midnight, e.g. 22:00 – 07:00
   return currentMinutes >= start || currentMinutes < end;
+}
+
+// ── Per-channel notification builders ───────────────────────
+
+interface UserContext {
+  accessToken: string;
+  roadmapData: RoadmapData | null;
+}
+
+async function buildGithub(ctx: UserContext): Promise<PushPayload | null> {
+  const scored = await getRepoToNudge(ctx.accessToken);
+  if (!scored) return null;
+
+  const { repo, daysSinceLastPush } = scored;
+  return {
+    title: "GitHub: Time to push",
+    body: `You haven't committed to ${repo.name} in ${daysSinceLastPush} day${daysSinceLastPush === 1 ? "" : "s"}. Time to push.`,
+    actionUrl: repo.html_url,
+  };
+}
+
+async function buildLeetcode(): Promise<PushPayload | null> {
+  const challenge = await fetchDailyProblem();
+  if (!challenge) return null;
+
+  return {
+    title: "LeetCode Daily",
+    body: formatDailyProblemText(challenge),
+    actionUrl: `https://leetcode.com${challenge.link}`,
+  };
+}
+
+async function buildKaggle(): Promise<PushPayload | null> {
+  const idea = await generateQuantIdea();
+  if (!idea) return null;
+
+  return {
+    title: "Quant Research Idea",
+    body: formatQuantIdeaText(idea),
+    actionUrl: "/kaggle",
+  };
+}
+
+async function buildRoadmap(ctx: UserContext): Promise<PushPayload | null> {
+  if (!ctx.roadmapData) return null;
+
+  const roadmap = parseRoadmapData(ctx.roadmapData);
+  const node = getNextSkillNode(roadmap);
+  if (!node) return null;
+
+  const task = await generateMicroTask(node.name, roadmap.name);
+  if (!task) return null;
+
+  return {
+    title: "Roadmap: Next Skill",
+    body: formatMicroTaskText(node.name, task),
+    actionUrl: "/roadmap",
+  };
+}
+
+/**
+ * Build a notification payload for the given channel.
+ * Returns null if the channel's data source has nothing to offer.
+ */
+export async function buildNotification(
+  channel: ModuleChannel,
+  ctx: UserContext
+): Promise<PushPayload | null> {
+  switch (channel) {
+    case "github":
+      return buildGithub(ctx);
+    case "leetcode":
+      return buildLeetcode();
+    case "kaggle":
+      return buildKaggle();
+    case "roadmap":
+      return buildRoadmap(ctx);
+  }
 }
