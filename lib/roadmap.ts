@@ -10,7 +10,7 @@ export function parseRoadmapData(data: RoadmapData): Roadmap {
       : goal.targetDate
         ? "in-progress"
         : "not-started",
-    completion_pct: goal.completed ? 100 : 0,
+    completion_pct: goal.completed ? 100 : (goal.completion_pct ?? 0),
   }));
 
   return {

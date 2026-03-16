@@ -35,6 +35,12 @@ function getEnvVar(name: string): string {
   return value;
 }
 
+function stripMarkdownFences(text: string): string {
+  const trimmed = text.trim();
+  const match = trimmed.match(/^```(?:json)?\s*\n?([\s\S]*?)\n?\s*```$/);
+  return match ? match[1].trim() : trimmed;
+}
+
 async function chatCompletion(
   system: string,
   userMessage: string
@@ -63,7 +69,7 @@ async function chatCompletion(
   }
 
   const data: ChatCompletionResponse = await res.json();
-  return data.choices[0].message.content;
+  return stripMarkdownFences(data.choices[0].message.content);
 }
 
 const RESEARCH_THEMES = [

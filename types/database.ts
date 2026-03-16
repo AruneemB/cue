@@ -1,14 +1,16 @@
 // ── String literal union types ──────────────────────────────
 export type ActivityType =
-  | "leetcode"
+  | "github"
   | "kaggle"
-  | "github_commit"
-  | "github_pr"
-  | "study"
-  | "exercise"
-  | "journal";
+  | "roadmap"
+  | "leetcode"
+  | "manual";
 
-export type NotificationChannel = "push" | "email" | "in_app";
+/** The content module that triggered a notification */
+export type ModuleChannel = "github" | "kaggle" | "roadmap" | "leetcode";
+
+/** Delivery method for notifications */
+export type DeliveryMethod = "push" | "email" | "in_app";
 
 export type DifficultyLevel = "beginner" | "intermediate" | "advanced";
 
@@ -23,7 +25,8 @@ export interface PushSubscription {
 
 export interface NotifyPrefs {
   enabled: boolean;
-  channels: NotificationChannel[];
+  deliveryMethods: DeliveryMethod[];
+  enabledModules: ModuleChannel[];
   quietHoursStart?: string; // HH:MM
   quietHoursEnd?: string;   // HH:MM
 }
@@ -34,6 +37,7 @@ export interface RoadmapData {
     title: string;
     targetDate?: string;
     completed: boolean;
+    completion_pct?: number; // 0-100, persisted across updates
   }[];
   currentPhase?: string;
 }
