@@ -83,7 +83,7 @@ export function calculateStreak(activeDates: (string | Date)[]): number {
 export function calculateLongestStreak(activeDates: (string | Date)[]): number {
   if (activeDates.length === 0) return 0;
 
-  const sorted = [...new Set(activeDates.map((d) => toDateKey(new Date(d))))].sort();
+  const sorted = Array.from(new Set(activeDates.map((d) => toDateKey(new Date(d))))).sort();
   let longest = 1;
   let current = 1;
 
