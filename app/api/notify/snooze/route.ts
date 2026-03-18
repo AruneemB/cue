@@ -1,18 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/db";
+import { verifySnoozeToken } from "@/lib/push";
 import { z } from "zod";
 
 const SnoozeSchema = z.object({
   minutes: z.number().int().min(1).max(480),
+  snoozeToken: z.string().optional(),
 });
 
 export async function POST(req: NextRequest) {
-  const session = await auth();
-  if (!session?.githubId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
   let body: unknown;
   try {
     body = await req.json();
@@ -28,26 +25,39 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // Resolve user ID via session auth or signed snooze token
+  let userId: string | null = null;
+
+  const session = await auth();
+  if (session?.githubId) {
+    const { data: user } = await supabaseAdmin
+      .from("users")
+      .select("id")
+      .eq("github_id", session.githubId)
+      .single();
+
+    if (user) {
+      userId = user.id;
+    }
+  }
+
+  if (!userId && parsed.data.snoozeToken) {
+    userId = verifySnoozeToken(parsed.data.snoozeToken);
+  }
+
+  if (!userId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const snoozedUntil = new Date(
     Date.now() + parsed.data.minutes * 60 * 1000
   ).toISOString();
-
-  // Get the user's Supabase ID from their github_id
-  const { data: user, error: userError } = await supabaseAdmin
-    .from("users")
-    .select("id")
-    .eq("github_id", session.githubId)
-    .single();
-
-  if (userError || !user) {
-    return NextResponse.json({ error: "User not found" }, { status: 404 });
-  }
 
   // Update the most recent notification with snoozed_until
   const { error } = await supabaseAdmin
     .from("notifications")
     .update({ snoozed_until: snoozedUntil })
-    .eq("user_id", user.id)
+    .eq("user_id", userId)
     .order("delivered_at", { ascending: false })
     .limit(1);
 

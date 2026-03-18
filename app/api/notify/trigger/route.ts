@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/db";
-import { sendPush } from "@/lib/push";
+import { sendPush, generateSnoozeToken } from "@/lib/push";
 import { checkDedup, markSent } from "@/lib/redis";
 import { pickChannel, isQuietHour, buildNotification } from "@/lib/notify";
 import type { User } from "@/types/database";
@@ -95,6 +95,10 @@ async function processUser(user: User, now: Date): Promise<void> {
   });
 
   if (!payload) return;
+
+  // Attach signed snooze token so the service worker can snooze
+  // without relying on session cookies
+  payload.snoozeToken = generateSnoozeToken(user.id);
 
   // Send push notification
   if (user.push_subscription) {

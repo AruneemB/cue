@@ -16,6 +16,7 @@ const SubscriptionSchema = z.object({
 // From app/api/notify/snooze/route.ts
 const SnoozeSchema = z.object({
   minutes: z.number().int().min(1).max(480),
+  snoozeToken: z.string().optional(),
 });
 
 // From lib/ai.ts
@@ -109,6 +110,19 @@ describe("SnoozeSchema", () => {
   it("rejects non-integer (30.5)", () => {
     const result = SnoozeSchema.safeParse({ minutes: 30.5 });
     expect(result.success).toBe(false);
+  });
+
+  it("accepts valid minutes with snoozeToken", () => {
+    const result = SnoozeSchema.safeParse({
+      minutes: 30,
+      snoozeToken: "user-id:1234567890:abcdef",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts valid minutes without snoozeToken", () => {
+    const result = SnoozeSchema.safeParse({ minutes: 30 });
+    expect(result.success).toBe(true);
   });
 });
 

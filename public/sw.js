@@ -8,14 +8,14 @@ self.addEventListener("activate", (event) =>
 self.addEventListener("push", (event) => {
   if (!event.data) return;
 
-  const { title, body, actionUrl } = event.data.json();
+  const { title, body, actionUrl, snoozeToken } = event.data.json();
 
   event.waitUntil(
     self.registration.showNotification(title, {
       body,
       icon: "/icon-192.png",
       badge: "/icon-192.png",
-      data: { url: actionUrl },
+      data: { url: actionUrl, snoozeToken },
       actions: [
         { action: "open", title: "Let's go \u2192" },
         { action: "snooze", title: "Snooze 30m" },
@@ -28,11 +28,13 @@ self.addEventListener("notificationclick", (event) => {
   event.notification.close();
 
   if (event.action === "snooze") {
+    const snoozeToken = event.notification.data?.snoozeToken;
     event.waitUntil(
       fetch("/api/notify/snooze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ minutes: 30 }),
+        credentials: "include",
+        body: JSON.stringify({ minutes: 30, snoozeToken }),
       })
     );
   } else {

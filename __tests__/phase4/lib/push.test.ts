@@ -160,3 +160,98 @@ describe("Push lib", () => {
     );
   });
 });
+
+describe("Snooze tokens", () => {
+  let cleanup: () => void;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.resetModules();
+    cleanup = setupTestEnv();
+  });
+
+  afterEach(() => {
+    cleanup();
+    vi.restoreAllMocks();
+  });
+
+  async function importPush() {
+    vi.doMock("web-push", () => ({
+      default: {
+        setVapidDetails: vi.fn(),
+        sendNotification: vi.fn(),
+      },
+    }));
+    return import("@/lib/push");
+  }
+
+  it("generateSnoozeToken returns a colon-separated string", async () => {
+    const { generateSnoozeToken } = await importPush();
+    const token = generateSnoozeToken("user-123");
+    const parts = token.split(":");
+    expect(parts.length).toBe(3);
+    expect(parts[0]).toBe("user-123");
+  });
+
+  it("verifySnoozeToken returns userId for a valid token", async () => {
+    const { generateSnoozeToken, verifySnoozeToken } = await importPush();
+    const token = generateSnoozeToken("user-456");
+    const result = verifySnoozeToken(token);
+    expect(result).toBe("user-456");
+  });
+
+  it("verifySnoozeToken returns null for a tampered signature", async () => {
+    const { generateSnoozeToken, verifySnoozeToken } = await importPush();
+    const token = generateSnoozeToken("user-789");
+    const tampered = token.slice(0, -4) + "xxxx";
+    expect(verifySnoozeToken(tampered)).toBeNull();
+  });
+
+  it("verifySnoozeToken returns null for an expired token", async () => {
+    const { generateSnoozeToken, verifySnoozeToken } = await importPush();
+
+    // Generate a token, then advance time past expiry
+    const now = Date.now();
+    vi.spyOn(Date, "now").mockReturnValue(now);
+    const token = generateSnoozeToken("user-exp");
+
+    // Advance 25 hours (past the 24h TTL)
+    vi.spyOn(Date, "now").mockReturnValue(now + 25 * 60 * 60 * 1000);
+    expect(verifySnoozeToken(token)).toBeNull();
+  });
+
+  it("verifySnoozeToken returns null for garbage input", async () => {
+    const { verifySnoozeToken } = await importPush();
+    expect(verifySnoozeToken("")).toBeNull();
+    expect(verifySnoozeToken("not-a-token")).toBeNull();
+    expect(verifySnoozeToken("a:b")).toBeNull();
+    expect(verifySnoozeToken("a:notanumber:sig")).toBeNull();
+  });
+
+  it("verifySnoozeToken returns null for wrong secret", async () => {
+    const { generateSnoozeToken } = await importPush();
+    const token = generateSnoozeToken("user-sec");
+
+    // Change the secret
+    process.env.CRON_SECRET = "different-secret";
+    vi.resetModules();
+    vi.doMock("web-push", () => ({
+      default: { setVapidDetails: vi.fn(), sendNotification: vi.fn() },
+    }));
+    const { verifySnoozeToken } = await import("@/lib/push");
+
+    expect(verifySnoozeToken(token)).toBeNull();
+  });
+
+  it("generateSnoozeToken throws when CRON_SECRET is missing", async () => {
+    delete process.env.CRON_SECRET;
+    const { generateSnoozeToken } = await importPush();
+    expect(() => generateSnoozeToken("user-x")).toThrow("Missing CRON_SECRET");
+  });
+
+  it("handles userId containing colons", async () => {
+    const { generateSnoozeToken, verifySnoozeToken } = await importPush();
+    const token = generateSnoozeToken("uuid:with:colons");
+    expect(verifySnoozeToken(token)).toBe("uuid:with:colons");
+  });
+});

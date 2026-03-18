@@ -2,7 +2,6 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
   createMockUser,
   createMockNotifyPrefs,
-  createMockPushSubscription,
   setupTestEnv,
 } from "@/__tests__/helpers/mocks";
 
@@ -17,6 +16,7 @@ vi.mock("@/lib/db", () => ({
 
 vi.mock("@/lib/push", () => ({
   sendPush: vi.fn(),
+  generateSnoozeToken: vi.fn(),
 }));
 
 vi.mock("@/lib/redis", () => ({
@@ -31,7 +31,7 @@ vi.mock("@/lib/notify", () => ({
 }));
 
 import { GET } from "@/app/api/notify/trigger/route";
-import { sendPush } from "@/lib/push";
+import { sendPush, generateSnoozeToken } from "@/lib/push";
 import { checkDedup, markSent } from "@/lib/redis";
 import { pickChannel, isQuietHour, buildNotification } from "@/lib/notify";
 
@@ -83,6 +83,7 @@ describe("GET /api/notify/trigger", () => {
     });
     vi.mocked(sendPush).mockResolvedValue(true);
     vi.mocked(markSent).mockResolvedValue(undefined);
+    vi.mocked(generateSnoozeToken).mockReturnValue("mock-snooze-token");
   });
 
   afterEach(() => {
@@ -138,13 +139,9 @@ describe("GET /api/notify/trigger", () => {
 
     // First call: select users. Returns user.
     const usersChain = buildChain({ data: [user] });
-    // Second call: select notifications (snoozed check). Returns null.
-    const notifChain = buildChain({ data: null });
-    // Third call: insert notification log
-    const insertChain = buildChain({ data: null });
 
     mockFrom
-      .mockReturnValueOnce(usersChain) // users query
+      .mockReturnValueOnce(usersChain); // users query
       // processUser will not run further queries since prefs.enabled is false
 
     const res = await GET(createRequest("Bearer test-cron-secret") as any);
@@ -187,7 +184,6 @@ describe("GET /api/notify/trigger", () => {
     const usersChain = buildChain({ data: [user] });
     const notifChain = buildChain({ data: null });
     const insertChain = buildChain({ data: null });
-    const updateChain = buildChain({ data: null });
 
     mockFrom
       .mockReturnValueOnce(usersChain)
@@ -237,5 +233,29 @@ describe("GET /api/notify/trigger", () => {
     const body = await res.json();
     expect(body.skipped).toBe(1);
     expect(body.sent).toBe(0);
+  });
+
+  it("attaches snoozeToken to payload before sending push", async () => {
+    const user = createMockUser();
+    const usersChain = buildChain({ data: [user] });
+    const notifChain = buildChain({ data: null });
+    const insertChain = buildChain({ data: null });
+
+    mockFrom
+      .mockReturnValueOnce(usersChain)
+      .mockReturnValueOnce(notifChain) // snoozed check
+      .mockReturnValueOnce(insertChain); // notification insert
+
+    vi.mocked(generateSnoozeToken).mockReturnValue("signed-token-abc");
+
+    const res = await GET(createRequest("Bearer test-cron-secret") as any);
+    expect(res.status).toBe(200);
+
+    // Verify generateSnoozeToken was called with the user's id
+    expect(generateSnoozeToken).toHaveBeenCalledWith(user.id);
+
+    // Verify the payload sent to sendPush includes the token
+    const sentPayload = vi.mocked(sendPush).mock.calls[0][1];
+    expect(sentPayload.snoozeToken).toBe("signed-token-abc");
   });
 });

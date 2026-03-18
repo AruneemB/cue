@@ -1,7 +1,9 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { setupTestEnv } from "@/__tests__/helpers/mocks";
 
 const mockAuth = vi.fn();
 const mockFrom = vi.fn();
+const mockVerifySnoozeToken = vi.fn();
 
 vi.mock("@/lib/auth", () => ({
   auth: (...args: unknown[]) => mockAuth(...args),
@@ -13,9 +15,15 @@ vi.mock("@/lib/db", () => ({
   },
 }));
 
+vi.mock("@/lib/push", () => ({
+  verifySnoozeToken: (...args: unknown[]) => mockVerifySnoozeToken(...args),
+}));
+
 import { POST } from "@/app/api/notify/snooze/route";
 
 describe("POST /api/notify/snooze", () => {
+  let cleanup: () => void;
+
   function buildChain(result: { data?: unknown; error?: unknown }) {
     const chain: Record<string, any> = {};
     for (const m of ["select", "insert", "update", "upsert", "eq", "not", "order", "limit", "single"]) {
@@ -42,10 +50,16 @@ describe("POST /api/notify/snooze", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    cleanup = setupTestEnv();
     mockAuth.mockResolvedValue({ githubId: "12345" });
+    mockVerifySnoozeToken.mockReturnValue(null);
   });
 
-  it("returns 401 when unauthenticated", async () => {
+  afterEach(() => {
+    cleanup();
+  });
+
+  it("returns 401 when unauthenticated and no token", async () => {
     mockAuth.mockResolvedValue(null);
     const res = await POST(createRequest({ minutes: 30 }) as any);
     expect(res.status).toBe(401);
@@ -80,19 +94,19 @@ describe("POST /api/notify/snooze", () => {
     expect(res.status).toBe(400);
   });
 
-  it("returns 404 when user not found", async () => {
+  it("returns 401 when session user not found in DB and no token", async () => {
     const chain = buildChain({ data: null, error: { message: "not found" } });
     mockFrom.mockReturnValue(chain);
 
     const res = await POST(createRequest({ minutes: 30 }) as any);
-    expect(res.status).toBe(404);
+    expect(res.status).toBe(401);
   });
 
-  it("calculates snoozed_until correctly", async () => {
+  it("calculates snoozed_until correctly via session auth", async () => {
     const now = Date.now();
     vi.spyOn(Date, "now").mockReturnValue(now);
 
-    // First call: get user
+    // First call: get user by github_id
     const userChain = buildChain({ data: { id: "user-uuid-1" } });
     // Second call: update notification
     const updateChain = buildChain({ data: null, error: null });
@@ -138,6 +152,72 @@ describe("POST /api/notify/snooze", () => {
     mockFrom.mockReturnValueOnce(userChain).mockReturnValueOnce(updateChain);
 
     const res = await POST(createRequest({ minutes: 480 }) as any);
+    expect(res.status).toBe(200);
+  });
+
+  // ── Snooze token auth tests ──────────────────────────────
+
+  it("accepts snooze token when session is absent", async () => {
+    mockAuth.mockResolvedValue(null);
+    mockVerifySnoozeToken.mockReturnValue("user-uuid-1");
+
+    const updateChain = buildChain({ data: null, error: null });
+    mockFrom.mockReturnValueOnce(updateChain);
+
+    const res = await POST(
+      createRequest({ minutes: 30, snoozeToken: "valid-token" }) as any
+    );
+    expect(res.status).toBe(200);
+    expect(mockVerifySnoozeToken).toHaveBeenCalledWith("valid-token");
+  });
+
+  it("uses session auth over token when both are present", async () => {
+    const userChain = buildChain({ data: { id: "session-user" } });
+    const updateChain = buildChain({ data: null, error: null });
+
+    mockFrom.mockReturnValueOnce(userChain).mockReturnValueOnce(updateChain);
+    mockVerifySnoozeToken.mockReturnValue("token-user");
+
+    const res = await POST(
+      createRequest({ minutes: 30, snoozeToken: "some-token" }) as any
+    );
+    expect(res.status).toBe(200);
+    // Token verify should NOT have been called since session succeeded
+    expect(mockVerifySnoozeToken).not.toHaveBeenCalled();
+  });
+
+  it("falls back to token when session user not found in DB", async () => {
+    const userChain = buildChain({ data: null, error: null });
+    const updateChain = buildChain({ data: null, error: null });
+
+    mockFrom.mockReturnValueOnce(userChain).mockReturnValueOnce(updateChain);
+    mockVerifySnoozeToken.mockReturnValue("token-user-id");
+
+    const res = await POST(
+      createRequest({ minutes: 30, snoozeToken: "fallback-token" }) as any
+    );
+    expect(res.status).toBe(200);
+    expect(mockVerifySnoozeToken).toHaveBeenCalledWith("fallback-token");
+  });
+
+  it("returns 401 when both session and token fail", async () => {
+    mockAuth.mockResolvedValue(null);
+    mockVerifySnoozeToken.mockReturnValue(null);
+
+    const res = await POST(
+      createRequest({ minutes: 30, snoozeToken: "invalid-token" }) as any
+    );
+    expect(res.status).toBe(401);
+  });
+
+  it("snoozeToken field is optional in request body", async () => {
+    // Session auth without snoozeToken in body should still work
+    const userChain = buildChain({ data: { id: "user-uuid-1" } });
+    const updateChain = buildChain({ data: null, error: null });
+
+    mockFrom.mockReturnValueOnce(userChain).mockReturnValueOnce(updateChain);
+
+    const res = await POST(createRequest({ minutes: 30 }) as any);
     expect(res.status).toBe(200);
   });
 });
