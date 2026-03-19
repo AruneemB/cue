@@ -1,10 +1,10 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { setupTestEnv } from "@/__tests__/helpers/mocks";
 
-const mockCreateClient = vi.fn(() => ({ _mock: true }));
+const mockCreateClient = vi.fn((..._args: any[]) => ({ _mock: true as const }));
 
 vi.mock("@supabase/supabase-js", () => ({
-  createClient: (...args: unknown[]) => mockCreateClient(...args),
+  createClient: (...args: any[]) => mockCreateClient(...args),
 }));
 
 describe("Supabase client", () => {
@@ -23,7 +23,7 @@ describe("Supabase client", () => {
   async function importDb() {
     // Re-mock after resetModules
     vi.doMock("@supabase/supabase-js", () => ({
-      createClient: (...args: unknown[]) => mockCreateClient(...args),
+      createClient: (...args: any[]) => mockCreateClient(...args),
     }));
     return import("@/lib/db");
   }
@@ -79,7 +79,7 @@ describe("Supabase client", () => {
 
   it("supabaseAdmin proxy delegates property access to real client", async () => {
     const mockClient = { from: vi.fn(() => "mocked") };
-    mockCreateClient.mockReturnValue(mockClient);
+    mockCreateClient.mockReturnValue(mockClient as any);
 
     const db = await importDb();
     const result = (db.supabaseAdmin as any).from("users");
@@ -90,7 +90,7 @@ describe("Supabase client", () => {
 
   it("supabaseBrowser proxy delegates property access to real client", async () => {
     const mockClient = { from: vi.fn(() => "browser-mocked") };
-    mockCreateClient.mockReturnValue(mockClient);
+    mockCreateClient.mockReturnValue(mockClient as any);
 
     const db = await importDb();
     const result = (db.supabaseBrowser as any).from("users");

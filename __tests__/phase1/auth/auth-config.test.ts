@@ -2,13 +2,13 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // Mock dependencies before importing
 const mockUpsert = vi.fn();
-const mockFrom = vi.fn(() => ({
+const mockFrom = vi.fn((..._args: any[]) => ({
   upsert: mockUpsert,
 }));
 
 vi.mock("@/lib/db", () => ({
   supabaseAdmin: {
-    from: (...args: unknown[]) => mockFrom(...args),
+    from: (...args: any[]) => mockFrom(...args),
   },
 }));
 
@@ -42,7 +42,7 @@ describe("auth callbacks", () => {
     // Re-setup mocks after resetModules
     vi.doMock("@/lib/db", () => ({
       supabaseAdmin: {
-        from: (...args: unknown[]) => mockFrom(...args),
+        from: (...args: any[]) => mockFrom(...args),
       },
     }));
 

@@ -24,7 +24,7 @@ describe("sampleTheme", () => {
   it("excludes specified themes", () => {
     // Exclude all but one theme to force a deterministic result
     const allThemes = Array.from({ length: 50 }, () => sampleTheme());
-    const unique = [...new Set(allThemes)];
+    const unique = Array.from(new Set(allThemes));
 
     // With enough samples, we should see at least a couple different themes
     expect(unique.length).toBeGreaterThan(1);

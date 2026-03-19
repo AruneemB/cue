@@ -1,3 +1,4 @@
+import { vi } from "vitest";
 import type { GitHubRepo, ScoredRepo } from "@/types/github";
 import type { DailyChallenge } from "@/types/leetcode";
 import type {
