@@ -21,12 +21,13 @@ export async function GET(req: NextRequest) {
   }
 
   // Pagination
-  const page = Math.max(1, Number(req.nextUrl.searchParams.get("page")) || 1);
-  const limit = Math.min(50, Math.max(1, Number(req.nextUrl.searchParams.get("limit")) || 20));
+  const { searchParams } = new URL(req.url);
+  const page = Math.max(1, Number(searchParams.get("page")) || 1);
+  const limit = Math.min(50, Math.max(1, Number(searchParams.get("limit")) || 20));
   const offset = (page - 1) * limit;
 
   // Optional filter by saved status
-  const savedOnly = req.nextUrl.searchParams.get("saved") === "true";
+  const savedOnly = searchParams.get("saved") === "true";
 
   let query = supabaseAdmin
     .from("kaggle_ideas")

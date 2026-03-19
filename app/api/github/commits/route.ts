@@ -21,7 +21,8 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const repo = req.nextUrl.searchParams.get("repo");
+  const { searchParams } = new URL(req.url);
+  const repo = searchParams.get("repo");
   if (!repo) {
     return NextResponse.json(
       { error: "Missing 'repo' query parameter (full_name)" },
