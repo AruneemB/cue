@@ -18,6 +18,16 @@ const geistMono = localFont({
 export const metadata: Metadata = {
   title: "Cue",
   description: "Your hourly signal to keep building.",
+  manifest: "/manifest.json",
+  themeColor: "#18181b",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Cue",
+  },
+  icons: {
+    apple: "/icon-192.png",
+  },
 };
 
 export default function RootLayout({
