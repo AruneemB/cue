@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { auth } from "@/lib/auth";
 
 const GITHUB_API = "https://api.github.com";
+
+const RepoParamSchema = z.string().regex(
+  /^[a-zA-Z0-9._-]+\/[a-zA-Z0-9._-]+$/,
+  "Must be in owner/repo format"
+);
 
 interface GitHubCommit {
   sha: string;
@@ -22,13 +28,14 @@ export async function GET(req: NextRequest) {
   }
 
   const { searchParams } = new URL(req.url);
-  const repo = searchParams.get("repo");
-  if (!repo) {
+  const parsed = RepoParamSchema.safeParse(searchParams.get("repo") ?? "");
+  if (!parsed.success) {
     return NextResponse.json(
-      { error: "Missing 'repo' query parameter (full_name)" },
+      { error: "Invalid or missing 'repo' query parameter — must be owner/repo format" },
       { status: 400 }
     );
   }
+  const repo = parsed.data;
 
   try {
     const res = await fetch(

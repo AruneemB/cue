@@ -48,6 +48,13 @@ describe("GET /api/github/commits", () => {
     expect(body.error).toContain("repo");
   });
 
+  it("returns 400 when repo param is not in owner/repo format", async () => {
+    const res = await GET(createRequest({ repo: "invalid-no-slash" }) as any);
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.error).toContain("owner/repo");
+  });
+
   // ── Success ─────────────────────────────────────────────────
 
   it("returns formatted commits on success", async () => {
