@@ -3,7 +3,6 @@
 import { useState } from "react";
 import {
   Star,
-  GitFork,
   AlertCircle,
   Clock,
   ExternalLink,

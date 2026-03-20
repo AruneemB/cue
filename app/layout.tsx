@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import SessionProvider from "@/components/providers/SessionProvider";
 import ServiceWorkerRegistration from "@/components/ServiceWorkerRegistration";
@@ -19,7 +19,6 @@ export const metadata: Metadata = {
   title: "Cue",
   description: "Your hourly signal to keep building.",
   manifest: "/manifest.json",
-  themeColor: "#18181b",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
@@ -28,6 +27,10 @@ export const metadata: Metadata = {
   icons: {
     apple: "/icon-192.png",
   },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#18181b",
 };
 
 export default function RootLayout({
